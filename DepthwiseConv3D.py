@@ -174,14 +174,11 @@ class DepthwiseConv3D(Conv3D):
                              'should be defined. Found `None`.')
         self.input_dim = int(input_shape[channel_axis])
 
-        if (self.group_size == None):
-            self.group_size = 1
-
         depthwise_kernel_shape = (self.kernel_size[0],
                                   self.kernel_size[1],
                                   self.kernel_size[2],
-                                  self.group_size,
-                                  self.group_size*self.depth_multiplier)
+                                  1,
+                                  self.input_dim * self.depth_multiplier)
 
 
         self.depthwise_kernel = self.add_weight(
@@ -212,14 +209,7 @@ class DepthwiseConv3D(Conv3D):
             dilation = self.dilation_rate + (1,) + (1,)
 
 
-        inputs = tf.split(inputs[0], self.input_dim//self.group_size, axis=1 if self._data_format == 'NCDHW' else 4)
-        outputs = tf.concat(
-            [tf.nn.conv3d(inp, self.depthwise_kernel,
-                strides=self._strides,
-                padding=self._padding,
-                dilations=dilation,
-                data_format=self._data_format) for inp in inputs], axis=1 if format == 'NCDHW' else 4)
-
+        outputs = tf.nn.conv3d(inputs[0], self.depthwise_kernel, strides=self._strides, padding= self._padding, dilations = dilation, data_format=self._data_format)
 
         if self.bias is not None:
             outputs = K.bias_add(
